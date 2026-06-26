@@ -74,7 +74,7 @@ def extractDataAllFrames(video_path, detector, file_name, fall_period):
                 result = []
                 try:
                     
-                    np.save( f"E:/Unesp/ICD/Codigo/Datasets/Oficial/Teste/{name}_Caindo",numpy_array)
+                    np.save( f"Datasets/Oficial/Teste/{name}_Caindo",numpy_array)
                     break
                 except Exception as e:
                     print(e)
@@ -83,7 +83,7 @@ def extractDataAllFrames(video_path, detector, file_name, fall_period):
 
 # Usage
 
-base_options = python.BaseOptions(model_asset_path="E:/MediaPipe/pose_landmarker_full.task")
+base_options = python.BaseOptions(model_asset_path="pose_landmarker_full.task")
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
     output_segmentation_masks=True)
@@ -137,7 +137,7 @@ fall_period = {
     "S4_12": 8,
     "S4_14": 13
     }
-for file_name in os.listdir("E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/Fall"):#GMDCSA24_Modified/ADL
-    extractDataAllFrames(f"E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/Fall/{file_name}", detector, file_name, fall_period)
+for file_name in os.listdir("Datasets/GMDCSA24_Modified/Fall"):#GMDCSA24_Modified/ADL
+    extractDataAllFrames(f"Datasets/GMDCSA24_Modified/Fall/{file_name}", detector, file_name, fall_period)
     
     #break

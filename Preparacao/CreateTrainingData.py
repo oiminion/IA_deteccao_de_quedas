@@ -72,7 +72,7 @@ def extractDataAllFrames(video_path, detector, file_name):
                 result = []
                 try:
                     name = file_name.replace(".mp4","")
-                    np.save( f"E:/Unesp/ICD/Codigo/Datasets/Oficial/Treino/{name}_{blocks:03d}",numpy_array)
+                    np.save( f"Datasets/Oficial/Treino/{name}_{blocks:03d}",numpy_array)
                     blocks += 1
                 except Exception as e:
                     print(e)
@@ -81,7 +81,7 @@ def extractDataAllFrames(video_path, detector, file_name):
 
 # Usage
 
-base_options = python.BaseOptions(model_asset_path="E:/MediaPipe/pose_landmarker_full.task")
+base_options = python.BaseOptions(model_asset_path="pose_landmarker_full.task")
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
     output_segmentation_masks=True)
@@ -90,7 +90,7 @@ detector = vision.PoseLandmarker.create_from_options(options)
 # STEP 3: Load the input image.
 count = 0
 
-for file_name in os.listdir("E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/ADL"):#GMDCSA24_Modified/ADL
-    extractDataAllFrames(f"E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/ADL/{file_name}", detector, file_name)
+for file_name in os.listdir("Datasets/GMDCSA24_Modified/ADL"):#GMDCSA24_Modified/ADL
+    extractDataAllFrames(f"Datasets/GMDCSA24_Modified/ADL/{file_name}", detector, file_name)
     
     #break

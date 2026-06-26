@@ -141,12 +141,12 @@ class CNN_3D_Main_01(nn.Module):#0.74
         return x
 
 if __name__ == '__main__':
-    dataset = AllData(data_dir='E:/Unesp/ICD/Codigo/Datasets/Oficial/Teste')
+    dataset = AllData(data_dir='Datasets/Oficial/Teste')
     train_loader = DataLoader(dataset, batch_size=32, shuffle=False, pin_memory=False, persistent_workers=True,num_workers=4)
 
     model = CNN_3D_Main_01()
 
-    checkpoint_path = f"E:/Unesp/ICD/Codigo/Modelos/{NETWORK_NAME}.pt"
+    checkpoint_path = f"Modelos/{NETWORK_NAME}.pt"
     checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'), weights_only=False) 
 
     model.load_state_dict(checkpoint['model_state_dict'])

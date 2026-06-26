@@ -144,7 +144,7 @@ def predictSingleArray(array, model, center, threshold):
 
 
 #setup MediaPipe 
-base_options = python.BaseOptions(model_asset_path="E:/MediaPipe/pose_landmarker_full.task")
+base_options = python.BaseOptions(model_asset_path="pose_landmarker_full.task")
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
     output_segmentation_masks=True)
@@ -154,7 +154,7 @@ detector = vision.PoseLandmarker.create_from_options(options)
 #setup CNN
 model = CNN_3D_Main_01()
 
-checkpoint_path = f"E:/Unesp/ICD/Codigo/Modelos/{NETWORK_NAME}.pt"
+checkpoint_path = f"Modelos/{NETWORK_NAME}.pt"
 
 epoch = -1
 epoch_loss = -1

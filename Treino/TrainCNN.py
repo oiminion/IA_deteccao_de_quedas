@@ -1,3 +1,8 @@
+import sys
+import pathlib
+
+sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent))
+
 import os
 import numpy as np
 import torch
@@ -136,10 +141,10 @@ if __name__ == '__main__':
     device = torch.device("cpu")
 
     #Carregar dataset
-    dataset = AllData(data_dir=f"E:/Unesp/ICD/Codigo/Datasets/Oficial/Treino/")
+    dataset = AllData(data_dir=f"Datasets/Oficial/Treino/")
     train_loader = DataLoader(dataset, batch_size=32, shuffle=True, pin_memory=False, persistent_workers=True,num_workers=4)#max(1,os.cpu_count()-1))
 
-    dataset2 = AllData2(data_dir='E:/Unesp/ICD/Codigo/Datasets/Oficial/Teste')
+    dataset2 = AllData2(data_dir='Datasets/Oficial/Teste')
     test_loader = DataLoader(dataset2, batch_size=32, shuffle=False, pin_memory=False, persistent_workers=True,num_workers=4)
 
     #Iniciar o modelo, criteriador e otimizador
@@ -163,7 +168,7 @@ if __name__ == '__main__':
     epoch_loss = 0
 
     #Carregar checkpoint
-    checkpoint_path = f"E:/Unesp/ICD/Codigo/Modelos/{NETWORK_NAME}.pt"
+    checkpoint_path = f"Modelos/{NETWORK_NAME}.pt"
     
     if Path(checkpoint_path).is_file():
         checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu')) 
@@ -177,7 +182,7 @@ if __name__ == '__main__':
 
         print(f"All time high: {best_auc}")
 
-        with open(f"E:/Unesp/ICD/Codigo/Metricas/time_taken_training_{NETWORK_NAME}.json", 'r', encoding='utf-8') as file:
+        with open(f"Metricas/time_taken_training_{NETWORK_NAME}.json", 'r', encoding='utf-8') as file:
             # Load and parse the saved JSON data
             data = json.load(file)
             print(data)
@@ -257,7 +262,7 @@ if __name__ == '__main__':
                 'center': center,
                 'optimal_threshold': optimal_threshold
             }
-            torch.save(checkpoint_data, f'E:/Unesp/ICD/Codigo/Modelos/{NETWORK_NAME}.pt')
+            torch.save(checkpoint_data, f'Modelos/{NETWORK_NAME}.pt')
 
             end_time = datetime.now()
         
@@ -270,7 +275,7 @@ if __name__ == '__main__':
                 "optimal_threshold": optimal_threshold,
                 "time_taken": str(delta_time)
             }
-            with open(f"E:/Unesp/ICD/Codigo/Metricas/time_taken_training_{NETWORK_NAME}.json", 'w') as json_file:
+            with open(f"Metricas/time_taken_training_{NETWORK_NAME}.json", 'w') as json_file:
                 json.dump(time_taken, json_file, indent=4)
 
         epoch += 1

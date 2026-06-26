@@ -54,15 +54,12 @@ def extract_all_frames(video_path, detector):
     cap.release()
     print(f"Total: {count}")
 
-base_options = python.BaseOptions(model_asset_path="E:/MediaPipe/pose_landmarker_full.task")
+base_options = python.BaseOptions(model_asset_path="pose_landmarker_full.task")
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
     output_segmentation_masks=True)
 detector = vision.PoseLandmarker.create_from_options(options)
 
-#for file_name in os.listdir("E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/Fall"):
-#    extract_all_frames(f"E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/Fall/{file_name}", detector)
-
 string = str(input("Nome:"))
 
-extract_all_frames(f"E:/Unesp/ICD/Codigo/Datasets/GMDCSA24_Modified/Fall/{string}.mp4", detector)
+extract_all_frames(f"Datasets/GMDCSA24_Modified/Fall/{string}.mp4", detector)
