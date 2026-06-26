@@ -195,7 +195,7 @@ while True:
             if time > 0:
                 text = "CAIU"
                 h, w, _ = frame.shape
-                font_scale = 20
+                font_scale = 1
                 thickness = 2
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
