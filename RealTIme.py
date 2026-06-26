@@ -111,9 +111,9 @@ def extractDataFromFrame(detector, block, frame):
     if len(block) == 10:
         numpy_array = np.array(block)
         block = block[1:]
-        return numpy_array, True
+        return numpy_array
     else:
-        return 0, False
+        return 0
                 
 def predictSingleArray(array, model, center, threshold):
     # 1. Ensure model is in evaluation mode
@@ -182,8 +182,8 @@ while True:
     success, frame = camera.read()
     if not success: break
     if count % 5 == 0:
-        array, flag = extractDataFromFrame(detector, block, frame)
-        if flag:
+        array = extractDataFromFrame(detector, block, frame)
+        if array != 0:
             anomaly_flag, dist = predictSingleArray(array, model, center, threshold)
             
             if anomaly_flag:
@@ -194,22 +194,32 @@ while True:
 
             if time > 0:
                 text = "CAIU"
-                h, w, _ = frame.shape
                 font_scale = 1
                 thickness = 2
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-                text_x = (w - text_w) // 2
-                text_y = (h + text_h) // 2
-                position = (text_x, text_y)
                 
-                color = (255, 0, 0)
+                position = (50, 50)
+                
+                color = (0, 0, 255)
                 
                 line_type = cv2.LINE_AA
 
                 cv2.putText(frame, text, position, font, font_scale, color, thickness, line_type)
 
                 time -= 1
+            else:
+                text = "Normal"
+                font_scale = 1
+                thickness = 2
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                
+                position = (50, 50)
+                
+                color = (0, 255, 0)
+                
+                line_type = cv2.LINE_AA
+
+                cv2.putText(frame, text, position, font, font_scale, color, thickness, line_type)
 
             cv2.imshow('Teste', frame)
 
