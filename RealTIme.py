@@ -176,6 +176,7 @@ if Path(checkpoint_path).is_file():
 camera = cv2.VideoCapture(0)
 camera.set(cv2.CAP_PROP_FPS, 30)
 count = 0
+time = 0
 block = []
 while True:
     success, frame = camera.read()
@@ -184,9 +185,37 @@ while True:
         array, flag = extractDataFromFrame(detector, block, frame)
         if flag:
             anomaly_flag, dist = predictSingleArray(array, model, center, threshold)
+            
             if anomaly_flag:
                 print(f"Caiu -- dist: {dist}")
+                time = 12
             else:
                 print(f"Nada -- dist: {dist}")
+
+            if time > 0:
+                text = "CAIU"
+                h, w, _ = frame.shape
+                font_scale = 20
+                thickness = 2
+                (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+                text_x = (w - text_w) // 2
+                text_y = (h + text_h) // 2
+                position = (text_x, text_y)
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                
+                color = (255, 0, 0)
+                
+                line_type = cv2.LINE_AA
+
+                cv2.putText(frame, text, position, font, font_scale, color, thickness, line_type)
+
+                time -= 1
+
+            cv2.imshow('Teste', frame)
+
+            key = cv2.waitKey(1) & 0xFF
+            
+            if key == 32 or key == 13:
+                break
     count += 1
 camera.release()
