@@ -17,7 +17,7 @@ from mediapipe.tasks.python import vision
 
 import cv2
 
-NETWORK_NAME = "CNN_3D_Main_02"
+NETWORK_NAME = "CNN_3D_Main_01"
 
 class CNN_3D_Main_01(nn.Module):#0.74
     def __init__(self):
@@ -197,11 +197,11 @@ while True:
                 h, w, _ = frame.shape
                 font_scale = 20
                 thickness = 2
+                font = cv2.FONT_HERSHEY_SIMPLEX
                 (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, thickness)
                 text_x = (w - text_w) // 2
                 text_y = (h + text_h) // 2
                 position = (text_x, text_y)
-                font = cv2.FONT_HERSHEY_SIMPLEX
                 
                 color = (255, 0, 0)
                 
@@ -214,7 +214,7 @@ while True:
             cv2.imshow('Teste', frame)
 
             key = cv2.waitKey(1) & 0xFF
-            
+
             if key == 32 or key == 13:
                 break
     count += 1
