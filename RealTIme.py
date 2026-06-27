@@ -1,231 +1,128 @@
+import json
 import os
-import numpy as np
+import cv2
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-from sklearn.metrics import roc_curve, roc_auc_score
-
-from pathlib import Path
 
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from mediapipe.tasks.python.vision import drawing_utils
-from mediapipe.tasks.python.vision import drawing_styles
-from mediapipe.tasks.python import vision
 
-import cv2
+import numpy as np
+import collections
 
-NETWORK_NAME = "CNN_3D_Main_01"
+from GetSkeleton import getSkeleton
 
-class CNN_3D_Main_01(nn.Module):#0.74
-    def __init__(self):
-        super(CNN_3D_Main_01, self).__init__()
+
+NETWORK_NAME = "LSTM_f1_81"
+
+BEST_MODEL_PATH = f"Models/{NETWORK_NAME}"
+
+MODEL_ASSET_PATH = "pose_landmarker_full.task"
+
+with open(f'{BEST_MODEL_PATH}.json', 'r') as f:
+    hiper_params = json.load(f)
+
+INPUT_SIZE = hiper_params["input"]
+HIDDEN_SIZE = hiper_params["hidden_size"]
+NUM_LAYERS = hiper_params["num_layer"]
+NUM_CLASSES = 2
+CLASSES = ['ADL', 'Caiu']
+SEQUENCE_LENGTH = 20
+
+class FallDetectionLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes):
+        super(FallDetectionLSTM, self).__init__()
         
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(16)
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
         
-        self.conv2 = nn.Conv2d(16, 16, kernel_size=3, padding=1)
-        self.bn2 = nn.BatchNorm2d(16)
-
-        self.conv3 = nn.Conv2d(16, 16, kernel_size=3, padding=1)
-        self.bn3 = nn.BatchNorm2d(16)
+        self.lstm = nn.LSTM(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True
+        )
         
-        self.conv4 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
-        self.bn4 = nn.BatchNorm2d(32)
+
+        self.fc = nn.Linear(hidden_size, num_classes)
         
-        self.pool = nn.AvgPool2d(kernel_size=2, stride=2)
-        
-        self.dropout = nn.Dropout(0.3)
-
-        self.fc1 = nn.Linear(32 * 23 * 10, 128)
-        self.bn_d1 = nn.BatchNorm1d(128)
-
-        self.fc2 = nn.Linear(128, 128)
-        self.bn_d2 = nn.BatchNorm1d(128)
-
-        self.fc3 = nn.Linear(128, 32)
-
     def forward(self, x):
-        #Parte convolucional
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = F.relu(self.bn4(self.conv4(x)))
+        out, _ = self.lstm(x)
         
-        #Achatamento
-        x = x.view(x.size(0), -1) 
+        out = self.fc(out[:, -1, :])
         
-        #Parte densa
-        x = F.relu(self.bn_d1(self.fc1(x)))
-        x = self.dropout(x)
-        x = F.relu(self.bn_d2(self.fc2(x)))
-        x = self.dropout(x)
-        x = self.fc3(x)
-        return x
+        return out
 
-def clearLandmarks(landmarks):
-    result = []
-    for i in range(len(landmarks)):
-        if (i >= 1 and i <= 6) or (i >= 9 and i <= 10) or i == 21 or i == 22:
-            continue
-        result.append([landmarks[i].x, landmarks[i].y, landmarks[i].z])
-    return result
+device = torch.device("cpu")
+model = FallDetectionLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, NUM_CLASSES)
 
-def extractDataFromFrame(detector, block, frame):
-    
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-    detection_result = detector.detect(mp_image)
-    if len(detection_result.pose_landmarks) > 0:
-        detection_result = clearLandmarks(detection_result.pose_landmarks[0])
-    else:
-        detection_result = [
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0],
-            [0,0,0]
-        ]
-            
-    block.append(detection_result)
+if os.path.exists(f"{BEST_MODEL_PATH}.pt"):
+    model.load_state_dict(torch.load(f"{BEST_MODEL_PATH}.pt", map_location=device))
+    print(f"Modelo carregado com sucesso de: {BEST_MODEL_PATH}")
+else:
+    print(f"Erro: O arquivo de pesos '{BEST_MODEL_PATH}' nao foi encontrado!")
+    exit()
 
-    if len(block) == 10:
-        numpy_array = np.array(block)
-        block = block[1:]
-        return numpy_array
-    else:
-        return 0
-                
-def predictSingleArray(array, model, center, threshold):
-    # 1. Ensure model is in evaluation mode
-    model.eval()
-    device = torch.device("cpu")
-    
-    # 2. Match the preprocessing inside your AllData Dataset class
-    tensor_data = torch.from_numpy(array).float().permute(2, 0, 1).unsqueeze(0)
-    tensor_data = tensor_data.to(device)
-    
-    # 3. Convert center to a PyTorch tensor if it isn't one
-    if isinstance(center, np.ndarray):
-        center = torch.from_numpy(center).float()
-    center = center.to(device)
-    
-    # 4. Pass through model to get the embedding
-    with torch.no_grad():
-        embedding = model(tensor_data)
-        
-        # 5. Calculate squared Euclidean distance to the center
-        distance = torch.sum((embedding - center) ** 2, dim=1).item()
-    
-    # 6. Classification decision
-    is_anomaly = distance > threshold
-    
-    return is_anomaly, distance
+model.to(device)
+model.eval()
 
-
-
-#setup MediaPipe 
-base_options = python.BaseOptions(model_asset_path="pose_landmarker_full.task")
+base_options = python.BaseOptions(model_asset_path='pose_landmarker_full.task')
 options = vision.PoseLandmarkerOptions(
     base_options=base_options,
-    output_segmentation_masks=True)
+    output_segmentation_masks=False
+)
 detector = vision.PoseLandmarker.create_from_options(options)
 
+cap = cv2.VideoCapture(0)
+frame_window = collections.deque(maxlen=SEQUENCE_LENGTH)
 
-#setup CNN
-model = CNN_3D_Main_01()
-
-checkpoint_path = f"Modelos/{NETWORK_NAME}.pt"
-
-epoch = -1
-epoch_loss = -1
-best_auc = -1
-center = -1
-
-if Path(checkpoint_path).is_file():
-    checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'), weights_only=False) 
-
-    model.load_state_dict(checkpoint['model_state_dict'])
-    epoch = checkpoint['epoch'] + 1  # Resume from the next epoch
-    epoch_loss = checkpoint['loss']
-    best_auc = checkpoint['best_auc']
-    center = checkpoint.get('center', None)
-    threshold = checkpoint['optimal_threshold']
-
-    print(f"All time high: {best_auc}")
-
-camera = cv2.VideoCapture(0)
-camera.set(cv2.CAP_PROP_FPS, 30)
 count = 0
-time = 0
-block = []
-while True:
-    success, frame = camera.read()
-    if not success: break
-    if count % 5 == 0:
-        array = extractDataFromFrame(detector, block, frame)
-        if array != 0:
-            anomaly_flag, dist = predictSingleArray(array, model, center, threshold)
-            
-            if anomaly_flag:
-                print(f"Caiu -- dist: {dist}")
-                time = 12
-            else:
-                print(f"Nada -- dist: {dist}")
 
-            if time > 0:
-                text = "CAIU"
-                font_scale = 1
-                thickness = 2
-                font = cv2.FONT_HERSHEY_SIMPLEX
+while cap.isOpened():
+    success, frame = cap.read()
+    if not success:
+        continue
+    
+    if count % 3 <= 1:
+        count += 1
+        continue
+        
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+    features = getSkeleton(frame_rgb, detector)
+        
+    frame_window.append(features)
+        
+    prediction_text = "Carregando janela"
+    color = (255, 255, 255) # Branco
+        
+    if len(frame_window) == SEQUENCE_LENGTH:
+        input_data = np.array(frame_window, dtype=np.float32)
+        input_tensor = torch.tensor(input_data).unsqueeze(0).to(device) # Shape: [1, Seq_Len, 132]
+        
+        if input_data.sum() != 0:
+            with torch.no_grad():
+                outputs = model(input_tensor)
+                probabilities = torch.softmax(outputs, dim=1)
+                confidence, predicted_class = torch.max(probabilities, 1)
+                    
+                class_idx = predicted_class.item()
+                prob_val = confidence.item() * 100
                 
-                position = (50, 50)
-                
-                color = (0, 0, 255)
-                
-                line_type = cv2.LINE_AA
+                prediction_text = f"{CLASSES[class_idx]} ({prob_val:.1f}%)"
+                color = (0, 0, 255) if class_idx == 1 else (0, 255, 0) # Vermelho se cair, Verde se normal
+                if class_idx == 1:
+                    print("Caiu")
+        else:
+            prediction_text = f"NADA"
+            color = (255, 0, 0)
 
-                cv2.putText(frame, text, position, font, font_scale, color, thickness, line_type)
+        # Renderiza o texto na imagem
+    cv2.putText(frame, prediction_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+    cv2.imshow('Detector de Quedas - MediaPipe Tasks + LSTM', frame)
+        
+    if cv2.waitKey(10) & 0xFF == 13:
+        break
 
-                time -= 1
-            else:
-                text = "Normal"
-                font_scale = 1
-                thickness = 2
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                
-                position = (50, 50)
-                
-                color = (0, 255, 0)
-                
-                line_type = cv2.LINE_AA
-
-                cv2.putText(frame, text, position, font, font_scale, color, thickness, line_type)
-
-            cv2.imshow('Teste', frame)
-
-            key = cv2.waitKey(1) & 0xFF
-
-            if key == 32 or key == 13:
-                break
     count += 1
-camera.release()
