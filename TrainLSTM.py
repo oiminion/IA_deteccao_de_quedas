@@ -15,13 +15,14 @@ import multiprocessing
 
 import json
 
+
 NETWORK_NAME = "LSTM_f1_03"
 
 ROOT_DIR = "Data/Landmark"
 
 INPUT_SIZE = 132
 HIDDEN_SIZE = 64
-NUM_LAYERS = 1
+NUM_LAYERS = 2
 NUM_CLASSES = 2
 BATCH_SIZE = 64
 LEARNING_RATE = 0.001
@@ -35,8 +36,6 @@ hiper_params = {
     "num_layer": NUM_LAYERS
 }
 
-with open(f"Models/{NETWORK_NAME}.json", "w") as f:
-    json.dump(hiper_params, f)
 
 class LoadNumpyArray(Dataset):
     def __init__(self, root_dir):
@@ -230,7 +229,7 @@ if __name__ == '__main__':
                 'all_time_high_f1': (f1_falling+f1_adl)/2
             }
 
-            torch.save(model.state_dict(), best_model_path)
+            torch.save(checkpoint_data, best_model_path)
 
             print(f"| Saved: {(f1_falling+f1_adl)/2:.2f}%")
         else:
